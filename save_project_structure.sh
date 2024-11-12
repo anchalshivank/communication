@@ -10,7 +10,7 @@ result=$(find "$DIRECTORY" \
     \( -type f ! -name "*.pyc" ! -name "*.log" ! -name ".DS_Store" ! -iname "*license*" \
     ! -iname "*.jpg" ! -iname "*.db" ! -iname "*.png" ! -iname "*.blend" ! -iname "*.gif" \
     ! -iname "*.toml" ! -iname "*.jpeg" ! -iname "*.svg" ! -iname "*.db-shm" ! -iname "*.bmp" \
-    ! -iname "*.base64" ! -iname "*.key" ! -iname "*.pem" ! -iname "*.pub" ! -iname "*.pdf" -print \))
+    ! -iname "*.base64" ! -iname "*.key" ! -iname "*.pem" ! -iname "*.pub" ! -iname "*.pdf" ! -iname "*.der" ! -iname "*.dir" -print \))
 
 # Prepare output
 output="===== Project Directory Structure =====\n"

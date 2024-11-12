@@ -1,39 +1,53 @@
-use communication::{q_client, q_server, tcp_client, tcp_server, common};
 use std::env;
 use std::error::Error;
-use communication::factory::create_listener;
-// #[tokio::main]
-// async fn main() -> Result<(), Box<dyn Error + Send + Sync + 'static>> {
-//     // Parse command-line arguments to check if we run as TCP/QUIC server or client
-//     let args: Vec<String> = env::args().collect();
-//     if args.len() < 2 {
-//         eprintln!("Usage: {} <server|client|qserver|qclient>", args[0]);
-//         return Ok(());
-//     }
-//
-//     match args[1].as_str() {
-//         "server" => tcp_server::run().await?,
-//         "client" => tcp_client::run().await?,
-//         "qserver" => q_server::run().await?,
-//         "qclient" => q_client::run().await?,
-//         _ => eprintln!("Invalid argument: use 'server', 'client', 'qserver' or 'qclient'"),
-//     }
-//
-//     Ok(())
-// }
+use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+use communication::conn::Conn;
+use communication::factory::{create_client, create_listener};
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn Error + Send + Sync>> {
+    let mode = env::args().nth(1).expect("Specify 'listener' or 'conn'");
+    let protocol = env::args().nth(2).expect("Specify 'tcp' or 'quic'");
 
-    let protocol = env::args().nth(1).expect("Specify tcp or quic");
-    let listener = create_listener(&protocol, "127.0.0.1:8080").await?;
+    let server_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
+    let conn_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 6000);
 
-    loop {
-        let mut connection = listener.accept().await?;
-        connection.send(b"Hello").await?;
-        let response = connection.receive().await?;
-        println!("{:?}", response);
+    match mode.as_str() {
+        "listener" => {
+            let listener = create_listener(&protocol, server_addr).await?;
+            println!("Running as {} listener on {:?}", protocol, server_addr);
+
+            loop {
+                let mut connection = listener.accept().await?;
+                tokio::spawn(async move {
+                    if let Err(e) = handle_connection(&mut connection).await {
+                        eprintln!("Connection error: {:?}", e);
+                    }
+                });
+            }
+        }
+        "conn" => {
+            let mut client = create_client(&protocol, conn_addr, server_addr).await?;
+            println!("Running as {} client connecting to {:?}", protocol, server_addr);
+
+            client.send(b"Hello from client").await?;
+            let response = client.receive().await?;
+            println!("Received from server: {:?}", response);
+        }
+        _ => {
+            eprintln!("Invalid mode. Use 'listener' or 'conn'.");
+            return Err("Invalid mode".into());
+        }
     }
 
+    Ok(())
+}
 
+async fn handle_connection(
+    connection: &mut Box<dyn Conn + Send + Sync>,
+) -> Result<(), Box<dyn Error + Send + Sync>> {
+    connection.send(b"Hello from server").await?;
+    let response = connection.receive().await?;
+    println!("Received from client: {:?}", response);
+    Ok(())
 }

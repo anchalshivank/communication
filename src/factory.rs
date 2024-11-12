@@ -1,14 +1,14 @@
 use crate::listener::Listener;
 use crate::quic_listener::QuicListen;
 use crate::tcp_listener::TcpListen;
-use quinn::Endpoint;
 use std::error::Error;
-use std::net::{IpAddr, Ipv4Addr, SocketAddr};
-use tokio::net::TcpListener;
+use std::net::SocketAddr;
+use crate::conn::Conn;
+use crate::quic_connection::QuicConn;
+use crate::tcp_connection::TcpConn;
 
-pub async fn create_listener(protocol: &str, addr: &str) -> Result<Box<dyn Listener + Send + Sync>, Box<dyn Error + Send + Sync>>{
+pub async fn create_listener(protocol: &str, bind_addr: SocketAddr) -> Result<Box<dyn Listener + Send + Sync>, Box<dyn Error + Send + Sync>>{
 
-    let bind_addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 5000);
 
     match protocol {
         "tcp" => {
@@ -24,4 +24,18 @@ pub async fn create_listener(protocol: &str, addr: &str) -> Result<Box<dyn Liste
         _ => Err("Unknown protocol".into()),
     }
 
+}
+
+pub async fn create_client(protocol: &str, bind_addr: SocketAddr, server_addr: SocketAddr) -> Result<Box<dyn Conn + Send + Sync>, Box<dyn Error + Send + Sync>> {
+    match protocol {
+        "tcp" => {
+            let mut client = TcpConn::new(server_addr).await?;
+            Ok(Box::new(client))
+        }
+        "quic" => {
+            let mut client = QuicConn::new(bind_addr, server_addr).await?;
+            Ok(Box::new(client))
+        }
+        _ => Err("Unknown protocol".into()),
+    }
 }

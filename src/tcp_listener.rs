@@ -1,6 +1,7 @@
 use std::error::Error;
 use std::net::SocketAddr;
 use async_trait::async_trait;
+use log::info;
 use tokio::net::TcpListener;
 use crate::conn::Conn;
 use crate::listener::Listener;
@@ -14,7 +15,7 @@ pub struct TcpListen {
 impl Listener for TcpListen {
     async fn accept(&self) -> Result<Box<dyn Conn + Send + Sync>, Box<dyn Error + Send + Sync>> {
         let (stream, addr) = self.listener.accept().await?;
-        println!("Accepted connection from {}", addr); // Optional logging
+        println!("Tcp listener started at {}", addr); // Optional logging
         Ok(Box::new(TcpConn { stream }))
     }
 }

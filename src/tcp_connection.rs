@@ -1,4 +1,5 @@
 use std::error::Error;
+use std::net::SocketAddr;
 use async_trait::async_trait;
 use tokio::io::{AsyncReadExt, AsyncWriteExt};
 use tokio::net::TcpStream;
@@ -26,5 +27,12 @@ impl Conn for TcpConn{
 
     async fn close(&self) {
         todo!()
+    }
+}
+
+impl TcpConn {
+    pub async fn new(server_addr: SocketAddr) -> Result<Self, Box<dyn Error + Send + Sync>> {
+        let stream = TcpStream::connect(server_addr).await?;
+        Ok(Self { stream })
     }
 }
